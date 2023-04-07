@@ -3,8 +3,6 @@ import mediapipe as mp
 from PIL import ImageFont, ImageDraw, Image
 import numpy as np      
 
-
-
 def draw_ball_location(image, locations):
     for i in range(len(locations)-1):
 

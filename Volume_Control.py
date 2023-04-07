@@ -7,7 +7,6 @@ from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 import numpy as np
 
- 
 cap = cv2.VideoCapture(0) #Checks for camera
  
 mpHands = mp.solutions.hands #detects hand/finger
