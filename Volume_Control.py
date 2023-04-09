@@ -17,8 +17,8 @@ mpDraw = mp.solutions.drawing_utils
 devices = AudioUtilities.GetSpeakers()
 interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
 volume = cast(interface, POINTER(IAudioEndpointVolume))
-volbar=400
-volper=0
+volbar=220
+volper=10
  
 volMin,volMax = volume.GetVolumeRange()[:2]
  
@@ -52,9 +52,9 @@ while True:
  
         length = hypot(x2-x1,y2-y1) #distance b/w tips using hypotenuse
  # from numpy we find our length,by converting hand range in terms of volume range ie b/w -63.5 to 0
-        vol = np.interp(length,[30,240],[volMin,volMax]) 
-        volbar=np.interp(length,[30,240],[400,150])
-        volper=np.interp(length,[30,240],[0,100])
+        vol = np.interp(length,[30,220],[volMin,volMax]) 
+        volbar=np.interp(length,[30,220],[400,150])
+        volper=np.interp(length,[30,220],[0,100])
         
         volume.SetMasterVolumeLevel(vol, None)
         
