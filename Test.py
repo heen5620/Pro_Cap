@@ -62,22 +62,22 @@ while cap.isOpened():
 
             y_pred = model.predict(input_data).squeeze()
 
-            if y_pred.ndim == 0:
-                conf = y_pred.item()
-                i_pred = int(y_pred)
-            else:
-                i_pred = int(np.argmax(y_pred))
-                conf = y_pred[i_pred]
+            if y_pred.ndim == 0: #예측값(y_pred)이 0차원(스칼라)일 경우
+                conf = y_pred.item() #conf 변수에 y_pred 값을 할당.
+                i_pred = int(y_pred) #i_pred 변수에 y_pred 값을 정수형으로 변환하여 할당
+            else: #그 외의 경우, 예측값이 1차원 이상인 경우
+                i_pred = int(np.argmax(y_pred))  #i_pred 변수에 y_pred 값 중 가장 큰 값의 인덱스를 정수형으로 변환하여 할당
+                conf = y_pred[i_pred] #conf 변수에 y_pred 배열에서 i_pred 인덱스에 해당하는 값(확률)을 할당
                 if conf < 0.7:
                     action_seq.append('?')
                     continue
 
-            action_seq.append(actions[i_pred])
+            action_seq.append(actions[i_pred]) #action_seq 리스트에 i_pred 인덱스에 해당하는 동작(actions[i_pred])을 추가 
         if len(action_seq) > 3:
-            if action_seq[-1] == action_seq[-2] == action_seq[-3]:
-                this_action = action_seq[-1] if action_seq[-1] in actions else '?'
+            if action_seq[-1] == action_seq[-2] == action_seq[-3]: #action_seq 리스트의 마지막 세 개의 값이 모두 같을 경우
+                this_action = action_seq[-1] if action_seq[-1] in actions else '?' # this_action 변수에 마지막 값(action_seq[-1])을 할당합니다. 단, 해당 값이 actions 리스트에 없는 경우 '?'를 할당
             else:
-                this_action = '?'
+                this_action = '?'#  this_action 변수에 '?'를 할당
         else:
             continue
 
