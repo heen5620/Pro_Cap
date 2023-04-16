@@ -5,7 +5,7 @@ import time, os
 
 actions = ['come']
 seq_length = 30
-secs_for_action = 15
+secs_for_action = 30
 
 # MediaPipe hands model
 mp_hands = mp.solutions.hands
@@ -77,7 +77,7 @@ while cap.isOpened():
 
         data = np.array(data)
         print(action, data.shape)
-        np.save(os.path.join('dataset', f'raw_{action}_{created_time}'), data)
+        np.save(os.path.join(f'raw_{action}_{created_time}'), data)
 
         # Create sequence data
         full_seq_data = []
@@ -86,5 +86,5 @@ while cap.isOpened():
 
         full_seq_data = np.array(full_seq_data)
         print(action, full_seq_data.shape)
-        np.save(os.path.join('dataset', f'seq_{action}_{created_time}'), full_seq_data)
+        np.save(os.path.join(f'seq_{action}_{created_time}'), full_seq_data)
     break

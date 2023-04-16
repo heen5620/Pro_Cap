@@ -3,7 +3,7 @@ import mediapipe as mp
 import numpy as np
 from tensorflow.keras.models import load_model
 
-actions = ['come']
+actions = ['Your Action', '?']
 seq_length = 30
 
 model = load_model('model.h5')
@@ -17,13 +17,6 @@ hands = mp_hands.Hands(
     min_tracking_confidence=0.5)
 
 cap = cv2.VideoCapture(0)
-
-# w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-# h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-# fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-# out = cv2.VideoWriter('input.mp4', fourcc, cap.get(cv2.CAP_PROP_FPS), (w, h))
-# out2 = cv2.VideoWriter('output.mp4', fourcc, cap.get(cv2.CAP_PROP_FPS), (w, h))
-
 seq = []
 action_seq = []
 
@@ -69,36 +62,28 @@ while cap.isOpened():
 
             y_pred = model.predict(input_data).squeeze()
 
-            if len(seq) < seq_length:
-                continue
-
-            input_data = np.expand_dims(np.array(seq[-seq_length:], dtype=np.float32), axis=0)
-
-            y_pred = model.predict(input_data).squeeze()
-
             if y_pred.ndim == 0:
                 conf = y_pred.item()
+                i_pred = int(y_pred)
             else:
                 i_pred = int(np.argmax(y_pred))
                 conf = y_pred[i_pred]
-
-            if conf < 0.5:
-                this_action = '?'
-            else:
-                action = actions[i_pred]
-                action_seq.append(action)
-
-                if len(action_seq) < 3:
+                if conf < 0.7:
+                    action_seq.append('?')
                     continue
 
+            action_seq.append(actions[i_pred])
+        if len(action_seq) > 3:
+            if action_seq[-1] == action_seq[-2] == action_seq[-3]:
+                this_action = action_seq[-1] if action_seq[-1] in actions else '?'
+            else:
                 this_action = '?'
-                if action_seq[-1] == action_seq[-2] == action_seq[-3]:
-                    this_action = action
+        else:
+            continue
 
-            cv2.putText(img, f'{this_action.upper()}', org=(int(res.landmark[0].x * img.shape[1]), int(res.landmark[0].y * img.shape[0] + 20)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255), thickness=2)
+        cv2.putText(img, f'{this_action.upper()}', org=(int(res.landmark[0].x * img.shape[1]), int(res.landmark[0].y * img.shape[0] + 20)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255), thickness=2)
 
-    # out.write(img0)
-    # out2.write(img)
     cv2.imshow('img', img)
     if cv2.waitKey(1) == ord('q'):
         break
+
