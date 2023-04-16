@@ -1,70 +1,54 @@
-import cv2 # OpenCV 라이브러리 import
-import mediapipe as mp # Mediapipe 라이브러리 import
-import numpy as np # numpy 라이브러리 import
-import time, os # time, os 라이브러리 import
+import cv2
+import mediapipe as mp
+import numpy as np
+import time, os
 
-# 수집할 손동작 종류 정의
-actions = ['come', 'away', 'spin']
-
-# 시퀀스 데이터 길이와 수집할 동작의 시간(초) 정의
-seq_length = 15
+actions = ['come']
+seq_length = 30
 secs_for_action = 15
 
-# MediaPipe hands 모델 로드
+# MediaPipe hands model
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 hands = mp_hands.Hands(
-    max_num_hands=1, # 손 인식 개수
-    min_detection_confidence=0.5, # 손 인식 최소 신뢰도
-    min_tracking_confidence=0.5) # 손 추적 최소 신뢰도
+    max_num_hands=1,
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5)
 
-# 웹캠에서 프레임 가져오기
 cap = cv2.VideoCapture(0)
 
-# 파일 저장을 위한 생성 시간 저장
 created_time = int(time.time())
-
-# 데이터 저장을 위한 디렉토리 생성
 os.makedirs('dataset', exist_ok=True)
 
-# 수집된 데이터 저장
 while cap.isOpened():
     for idx, action in enumerate(actions):
         data = []
 
-        # 사용자에게 수집할 동작 정보 표시
         ret, img = cap.read()
+
         img = cv2.flip(img, 1)
+
         cv2.putText(img, f'Waiting for collecting {action.upper()} action...', org=(10, 30), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255), thickness=2)
         cv2.imshow('img', img)
         cv2.waitKey(3000)
 
-        # 수집 시작 시간 저장
         start_time = time.time()
 
-        # 수집 동안 프레임 가져오기
         while time.time() - start_time < secs_for_action:
             ret, img = cap.read()
+
             img = cv2.flip(img, 1)
-
-            # 이미지 색상 변환
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-            # 손가락, 손목 각도 추출
             result = hands.process(img)
-
-            # 이미지 색상 변환
             img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
             if result.multi_hand_landmarks is not None:
                 for res in result.multi_hand_landmarks:
                     joint = np.zeros((21, 4))
-
-                    # 손가락, 손목 위치 정보 추출
                     for j, lm in enumerate(res.landmark):
                         joint[j] = [lm.x, lm.y, lm.z, lm.visibility]
 
-                    # 손가락, 손목 각도 계산
+                    # Compute angles between joints
                     v1 = joint[[0,1,2,3,0,5,6,7,0,9,10,11,0,13,14,15,0,17,18,19], :3] # Parent joint
                     v2 = joint[[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20], :3] # Child joint
                     v = v2 - v1 # [20, 3]
@@ -104,4 +88,3 @@ while cap.isOpened():
         print(action, full_seq_data.shape)
         np.save(os.path.join('dataset', f'seq_{action}_{created_time}'), full_seq_data)
     break
-
