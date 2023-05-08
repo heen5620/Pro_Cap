@@ -77,7 +77,7 @@ while cap.isOpened():
             if action_seq[-1] == action_seq[-2] == action_seq[-3]: #action_seq 리스트의 마지막 세 개의 값이 모두 같을 경우
                 this_action = action_seq[-1] if action_seq[-1] in actions else '?' # this_action 변수에 마지막 값(action_seq[-1])을 할당합니다. 단, 해당 값이 actions 리스트에 없는 경우 '?'를 할당
             else:
-                this_action = '?'#  this_action 변수에 '?'를 할당
+                this_action = '?' #this_action 변수에 '?'를 할당
         else:
             continue
 

@@ -94,3 +94,5 @@ while cap.isOpened():
     cv2.imshow('img', img)
     if cv2.waitKey(1) == ord('q'):
         break
+
+#특성, 
