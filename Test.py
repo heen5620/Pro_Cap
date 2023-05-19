@@ -1,6 +1,7 @@
 import cv2
 import mediapipe as mp
 import numpy as np
+import time
 from tensorflow.keras.models import load_model
 
 actions = ['Your Action', '?']
@@ -44,7 +45,7 @@ while cap.isOpened():
 
             # Get angle using arcos of dot product
             angle = np.arccos(np.einsum('nt,nt->n',
-                v[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:], 
+                v[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:],
                 v[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:])) # [15,]
 
             angle = np.degrees(angle) # Convert radian to degree
@@ -72,7 +73,7 @@ while cap.isOpened():
                     action_seq.append('?')
                     continue
 
-            action_seq.append(actions[i_pred]) #action_seq 리스트에 i_pred 인덱스에 해당하는 동작(actions[i_pred])을 추가 
+            action_seq.append(actions[i_pred]) #action_seq 리스트에 i_pred 인덱스에 해당하는 동작(actions[i_pred])을 추가
         if len(action_seq) > 3:
             if action_seq[-1] == action_seq[-2] == action_seq[-3]: #action_seq 리스트의 마지막 세 개의 값이 모두 같을 경우
                 this_action = action_seq[-1] if action_seq[-1] in actions else '?' # this_action 변수에 마지막 값(action_seq[-1])을 할당합니다. 단, 해당 값이 actions 리스트에 없는 경우 '?'를 할당

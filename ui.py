@@ -1,72 +1,95 @@
+import os
+import time
 import cv2
-import mediapipe as mp
 import numpy as np
-import tkinter as tk
+import mediapipe as mp
 
-mp_drawing = mp.solutions.drawing_utils
+# 사용자 정의 액션 이름
+custom_action = 'my_gesture'
+
+actions = [custom_action]
+seq_length = 30
+secs_for_action = 30
+
+# MediaPipe hands model
 mp_hands = mp.solutions.hands
+mp_drawing = mp.solutions.drawing_utils
+hands = mp_hands.Hands(
+    max_num_hands=1,
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5)
 
-locked = True
+cap = cv2.VideoCapture(0)
 
-def unlock_condition(hand_landmarks):
-    index_raised = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y < hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_PIP].y
-    other_fingers_folded = (
-        hand_landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y > hand_landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_PIP].y
-        and hand_landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_TIP].y > hand_landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_PIP].y
-        and hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP].y > hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_PIP].y
-    )
-    return index_raised and other_fingers_folded
+created_time = int(time.time())
+os.makedirs('dataset', exist_ok=True)
 
-def unlock_button_pressed():
-    global locked
-    locked = False
-    print("Unlock button pressed")
-    root.destroy()
+while cap.isOpened():
+    for idx, action in enumerate(actions):
+        data = []
 
-def create_lock_ui():
-    global root
-    root = tk.Tk()
-    root.title("Locked")
-    root.geometry("300x200")
+        ret, img = cap.read()
 
-    unlock_button = tk.Button(root, text="Unlock", command=unlock_button_pressed)
-    unlock_button.pack(pady=20)
+        img = cv2.flip(img, 1)
 
-    root.mainloop()
+        cv2.putText(img, f'Waiting for collecting {action.upper()} action...', org=(10, 30), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255), thickness=2)
+        cv2.imshow('img', img)
+        cv2.waitKey(3000)
 
-def main():
-    cap = cv2.VideoCapture(0)
+        start_time = time.time()
 
-    with mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5) as hands:
-        while cap.isOpened():
-            if not locked:
-                ret, frame = cap.read()
-                if not ret:
-                    print("Ignoring empty camera frame.")
-                    continue
+        while time.time() - start_time < secs_for_action:
+            ret, img = cap.read()
 
-                frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)
+            img = cv2.flip(img, 1)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            result = hands.process(img)
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
-                frame.flags.writeable = False
-                results = hands.process(frame)
+            if result.multi_hand_landmarks is not None:
+                for res in result.multi_hand_landmarks:
+                    joint = np.zeros((21, 4))
+                    for j, lm in enumerate(res.landmark):
+                        joint[j] = [lm.x, lm.y, lm.z, lm.visibility]
 
-                frame.flags.writeable = True
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                if results.multi_hand_landmarks:
-                    for hand_landmarks in results.multi_hand_landmarks:
-                        mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-                        if unlock_condition(hand_landmarks):
-                            print("Unlock condition met!")
-                            locked = False
+                    # Compute angles between joints
+                    v1 = joint[[0,1,2,3,0,5,6,7,0,9,10,11,0,13,14,15,0,17,18,19], :3] # Parent joint
+                    v2 = joint[[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20], :3] # Child joint
+                    v = v2 - v1 # [20, 3]
+                    # Normalize v
+                    v = v / np.linalg.norm(v, axis=1)[:, np.newaxis]
 
-                cv2.imshow("Hands", frame)
-                if cv2.waitKey(5) & 0xFF == 27:
-                    break
-            else:
-                create_lock_ui()
+                    # Get angle using arcos of dot product
+                    angle = np.arccos(np.einsum('nt,nt->n',
+                        v[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:], 
+                        v[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:])) # [15,]
 
-    cap.release()
-    cv2.destroyAllWindows()
+                    angle = np.degrees(angle) # Convert radian to degree
 
-if __name__ == "__main__":
-    main()
+                    angle_label = np.array([angle], dtype=np.float32)
+                    angle_label = np.append(angle_label, idx)
+
+                    d = np.concatenate([joint.flatten(), angle_label])
+
+                    data.append(d)
+                    mp_drawing.draw_landmarks(img, res, mp_hands.HAND_CONNECTIONS)
+
+            cv2.imshow('img', img)
+            if cv2.waitKey(1) == ord('q'):
+                break
+
+        data = np.array(data)
+        print(action, data.shape)
+        np.save(os.path.join('dataset', f'raw_{action}_{created_time}.npy'), data)
+
+        # Create sequence data
+        full_seq_data = []
+        for seq in range(len(data) - seq_length):
+            full_seq_data.append(data[seq:seq + seq_length])
+
+        full_seq_data = np.array(full_seq_data)
+        print(action, full_seq_data.shape)
+        np.save(os.path.join('dataset', f'seq_{action}_{created_time}.npy'), full_seq_data)
+
+cap.release()
+cv2.destroyAllWindows()
