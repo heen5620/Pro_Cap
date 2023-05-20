@@ -2,6 +2,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import time
+import subprocess
 from tensorflow.keras.models import load_model
 
 actions = ['Your Action', '?']
@@ -92,7 +93,8 @@ while cap.isOpened():
         cv2.putText(img, f'{this_action.upper()}', org=(int(res.landmark[0].x * img.shape[1]), int(res.landmark[0].y * img.shape[0] + 20)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255), thickness=2)
 
         elapsed_time = time.time() - start_time  # 경과한 시간을 계산합니다.
-        if this_action == 'Your Action' and elapsed_time > 10.0 and your_action_count > 100:
+        if this_action == 'Your Action' and elapsed_time > 10.0 and your_action_count > 50:
+            subprocess.Popen(["python", "11.py"])
             break  # "Your Action"이 3초 이상 반복되면 프로그램을 종료.
 
     cv2.imshow('img', img)
